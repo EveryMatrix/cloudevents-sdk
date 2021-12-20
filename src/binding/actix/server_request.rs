@@ -8,7 +8,7 @@ use futures::{FutureExt, StreamExt};
 use http::header::{AsHeaderName, HeaderName, HeaderValue};
 
 /// Implement Headers for the actix HeaderMap
-impl<'a> Headers<'a> for actix_web::http::HeaderMap {
+impl<'a> Headers<'a> for actix_web::http::header::HeaderMap {
     type Iterator = Box<dyn Iterator<Item = (&'a HeaderName, &'a HeaderValue)> + 'a>;
     fn get<K: AsHeaderName>(&self, key: K) -> Option<&HeaderValue> {
         self.get(key.as_str())
@@ -32,14 +32,17 @@ pub async fn request_to_event(
 
 /// So that an actix-web handler may take an Event parameter
 impl actix_web::FromRequest for Event {
-    type Config = ();
+    // type Config = ();
     type Error = actix_web::Error;
     type Future = LocalBoxFuture<'static, std::result::Result<Self, Self::Error>>;
 
     fn from_request(r: &HttpRequest, p: &mut actix_web::dev::Payload) -> Self::Future {
-        let payload = web::Payload(p.take());
         let request = r.to_owned();
-        async move { request_to_event(&request, payload).await }.boxed_local()
+        let mut p = p.take();
+        async move {
+            let payload = web::Payload::from_request(&request, &mut p).await.unwrap();
+            request_to_event(&request, payload).await
+        }.boxed_local()
     }
 }
 

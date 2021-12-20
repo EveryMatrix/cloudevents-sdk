@@ -2,6 +2,7 @@ use crate::binding::http::{Builder, Serializer};
 use crate::message::{BinaryDeserializer, Result};
 use crate::Event;
 use actix_web::http::StatusCode;
+use actix_web::body::BoxBody;
 use actix_web::{HttpRequest, HttpResponse, HttpResponseBuilder};
 
 impl Builder<HttpResponse> for HttpResponseBuilder {
@@ -27,6 +28,8 @@ pub fn event_to_response<T: Builder<HttpResponse> + 'static>(
 
 /// So that an actix-web handler may return an Event
 impl actix_web::Responder for Event {
+    type Body = BoxBody;
+
     fn respond_to(self, _: &HttpRequest) -> HttpResponse {
         HttpResponse::build(StatusCode::OK).event(self).unwrap()
     }
